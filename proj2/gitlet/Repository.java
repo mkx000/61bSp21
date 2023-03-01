@@ -1,15 +1,17 @@
 package gitlet;
 
 import java.io.File;
+
 import static gitlet.Utils.*;
 
 // TODO: any imports you need here
 
-/** Represents a gitlet repository.
- *  TODO: It's a good idea to give a description here of what else this Class
- *  does at a high level.
+/**
+ * Represents a gitlet repository.
+ * TODO: It's a good idea to give a description here of what else this Class
+ * does at a high level.
  *
- *  @author TODO
+ * @author TODO
  */
 public class Repository {
     /**
@@ -20,10 +22,27 @@ public class Repository {
      * variable is used. We've provided two examples for you.
      */
 
-    /** The current working directory. */
+    /**
+     * The current working directory.
+     */
     public static final File CWD = new File(System.getProperty("user.dir"));
-    /** The .gitlet directory. */
+    /**
+     * The .gitlet directory.
+     */
     public static final File GITLET_DIR = join(CWD, ".gitlet");
 
-    /* TODO: fill in the rest of this class. */
+    public static final File COMMIT_DIR = join(GITLET_DIR, "commits");
+
+    public static void initRepo() {
+        if (GITLET_DIR.exists()) {
+            System.out.println("A Gitlet version-control system already exists in the current directory.");
+            System.exit(0);
+        }
+        try {
+            GITLET_DIR.createNewFile();
+        } catch (Exception e) {
+            throw new GitletException("can't create .gitlet directory");
+        }
+
+    }
 }
