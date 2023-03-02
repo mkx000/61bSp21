@@ -4,6 +4,7 @@ package gitlet;
 
 import java.io.Serializable;
 import java.util.Date; // TODO: You'll likely use this in this class
+import java.util.TreeMap;
 
 /** Represents a gitlet commit object.
  *  TODO: It's a good idea to give a description here of what else this Class
@@ -22,7 +23,19 @@ public class Commit implements Serializable {
 
     /** The message of this Commit. */
     private String message;
+    private Date date;
+    private transient Commit parent1 = null;
+    private transient Commit parent2 = null;
+
+    TreeMap<String, String> mapping;
+
+    public Commit(String msg){
+        message = msg;
+        date = new Date();
+    }
 
 
-    /* TODO: fill in the rest of this class. */
+//    public static void main(String[] args) {
+//        System.out.println(new Date(0));
+//    }
 }
