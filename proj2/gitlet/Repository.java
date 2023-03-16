@@ -32,18 +32,14 @@ public class Repository {
      */
     public static final File GITLET_DIR = join(CWD, ".gitlet");
 
-    public static final File COMMITS_DIR = join(GITLET_DIR, "commits");
-    public static final File STAGE_DIR = join(GITLET_DIR, "stage");
-    public static final File BLOBS_DIR = join(GITLET_DIR, "blobs");
-    public static final File BRANCHES = join(GITLET_DIR, "branches");
+    public static final File BRANCHES_DIR = join(GITLET_DIR, "branches");
+    public static final File OBJECTS_DIR = join(GITLET_DIR, "objects");
+    public static final File COMMITS_DIR = join(OBJECTS_DIR, "commits");
+    public static final File BLOBS_DIR = join(OBJECTS_DIR, "blobs");
 
-    //存储HEAD or branch对应的commit sha1代码
+    public static final File INDEX = join(GITLET_DIR, "INDEX")
     public static final File HEAD = join(GITLET_DIR, "HEAD");
     public static final File branch = join(GITLET_DIR, "branch");
-    public static final File master = join(BRANCHES, "master");
-
-    //将被删除的文件名
-    public static HashSet<String> removal = new HashSet<>();
 
     public static void initRepo() {
         if (GITLET_DIR.exists()) {
@@ -52,22 +48,24 @@ public class Repository {
         }
         try {
             GITLET_DIR.mkdir();
+            OBJECTS_DIR.mkdir();
             COMMITS_DIR.mkdir();
-            STAGE_DIR.mkdir();
             BLOBS_DIR.mkdir();
-            BRANCHES.mkdir();
+            BRANCHES_DIR.mkdir();
             HEAD.createNewFile();
-            master.createNewFile();
+            INDEX.createNewFile();
             branch.createNewFile();
         } catch (Exception e) {
             System.out.println("can't create .gitlet or stage or commits directory");
             System.exit(0);
         }
+        writeContents(branch, "master");
+        File master = join(BRANCHES_DIR, "master");
+
         Commit initialCommit = new Commit("initial commit", new Date(0));
         String sha1Value = initialCommit.saveCommit();
         writeContents(HEAD, sha1Value);
-        writeContents(master, sha1Value);
-        writeContents(branch, "master");
+        writeContents(getBranch(), "master");
     }
 
     public static void add(String fileName) {
@@ -78,10 +76,11 @@ public class Repository {
         }
 
         Commit currentCommit = getHeadCommit();
-        String curSha1 = currentCommit.index.mapping.getOrDefault(fileName, null);
+        String curSha1 = currentCommit.getSha1(fileName);
         String thisSha1 = sha1(file);
         if (thisSha1.equals(curSha1)) {
             restrictedDelete(join(STAGE_DIR, fileName)); // stage区删去已经提交的文件
+
         } else {
             writeContents(join(STAGE_DIR, fileName), readContentsAsString(file)); //内容不一致stage区重写fileName文件
         }
@@ -123,6 +122,6 @@ public class Repository {
 
     public static File getBranch() {
         String branchName = readContentsAsString(branch);
-        return join(BRANCHES, branchName);
+        return join(BRANCHES_DIR, branchName);
     }
 }
