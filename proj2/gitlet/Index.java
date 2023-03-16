@@ -1,6 +1,7 @@
 package gitlet;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -8,7 +9,7 @@ import java.util.TreeMap;
 
 import static gitlet.Utils.*;
 
-public class Index {
+public class Index implements Serializable {
 
     /**
      * 把文件名 fileName以及 parent1, parent2 映射为 sha1 value

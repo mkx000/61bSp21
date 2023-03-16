@@ -40,7 +40,7 @@ public class Commit implements Serializable {
 
     public Commit(String msg, Date date) {
         this.message = msg;
-        this.date = date;
+        this.date = new Date();
         index = new Index();
     }
 
@@ -65,7 +65,7 @@ public class Commit implements Serializable {
         try {
             file.createNewFile();
         } catch (IOException e) {
-            System.out.println("can't create a new file in saveCommit method");
+            throw error("can't create a new file in saveCommit method");
         }
         writeObject(file, this);
         return sha1Value;

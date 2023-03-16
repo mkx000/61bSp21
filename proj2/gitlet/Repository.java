@@ -35,12 +35,12 @@ public class Repository {
     public static final File COMMITS_DIR = join(GITLET_DIR, "commits");
     public static final File STAGE_DIR = join(GITLET_DIR, "stage");
     public static final File BLOBS_DIR = join(GITLET_DIR, "blobs");
+    public static final File BRANCHES = join(GITLET_DIR, "branches");
 
     //存储HEAD or branch对应的commit sha1代码
     public static final File HEAD = join(GITLET_DIR, "HEAD");
-    public static final File master = join(GITLET_DIR, "master");
-    public static File branch;
-    public static HashSet<File> branches = new HashSet<>();
+    public static final File branch = join(GITLET_DIR, "branch");
+    public static final File master = join(BRANCHES, "master");
 
     //将被删除的文件名
     public static HashSet<String> removal = new HashSet<>();
@@ -55,9 +55,10 @@ public class Repository {
             COMMITS_DIR.mkdir();
             STAGE_DIR.mkdir();
             BLOBS_DIR.mkdir();
+            BRANCHES.mkdir();
             HEAD.createNewFile();
             master.createNewFile();
-            branch = master;
+            branch.createNewFile();
         } catch (Exception e) {
             System.out.println("can't create .gitlet or stage or commits directory");
             System.exit(0);
@@ -66,7 +67,7 @@ public class Repository {
         String sha1Value = initialCommit.saveCommit();
         writeContents(HEAD, sha1Value);
         writeContents(master, sha1Value);
-        branches.add(master);
+        writeContents(branch, "master");
     }
 
     public static void add(String fileName) {
@@ -102,15 +103,13 @@ public class Repository {
         Commit newCommit = new Commit(msg, new Date(), getHeadCommit());
         String sha1Value = newCommit.saveCommit();
         writeContents(HEAD, sha1Value);
-        writeContents(branch, sha1Value);
+        writeContents(getBranch(), sha1Value);
         /**
          *  clean stage area
          */
         for (String file : staged) {
             restrictedDelete(join(STAGE_DIR, file));
         }
-
-
     }
 
     public static Commit getHeadCommit() {
@@ -120,5 +119,10 @@ public class Repository {
             return null;
         }
         return readObject(join(COMMITS_DIR, readContentsAsString(HEAD)), Commit.class);
+    }
+
+    public static File getBranch() {
+        String branchName = readContentsAsString(branch);
+        return join(BRANCHES, branchName);
     }
 }
