@@ -2,25 +2,18 @@ package gitlet;
 
 import java.io.File;
 import java.io.Serializable;
-import java.util.*;
-
-import static gitlet.Repository.
+import java.util.HashMap;
+import java.util.HashSet;
+import static gitlet.Repository.INDEX;
 import static gitlet.Utils.*;
 
 public class Index implements Serializable {
-    /**
-     * 把文件名 fileName以及 parent1, parent2 映射为 sha1 value
-     */
     public HashMap<String, String> staged;
     public HashMap<String, String> removed;
 
-    private Index() {
+    Index() {
         staged = new HashMap<>();
         removed = new HashMap<>();
-    }
-
-    public boolean isEmpty() {
-        return staged.isEmpty() && removed.isEmpty();
     }
 
     public void clear() {
@@ -28,7 +21,18 @@ public class Index implements Serializable {
         removed.clear();
     }
 
-    public void save(){
-        writeObject();
+    public boolean isEmpty() {
+        return staged.isEmpty() && removed.isEmpty();
+    }
+
+    public void save() {
+        writeObject(INDEX, this);
+    }
+
+    public static Index getStagingArea() {
+        if (INDEX.exists()) {
+            return readObject(INDEX, Index.class);
+        }
+        return new Index();
     }
 }

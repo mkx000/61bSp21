@@ -3,72 +3,107 @@ package gitlet;
 // TODO: any imports you need here
 
 import java.io.File;
-import java.io.IOException;
 import java.io.Serializable;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date; // TODO: You'll likely use this in this class
 import java.util.HashMap;
-import java.util.List;
-import java.util.TreeMap;
+import java.util.Locale;
 
-import static gitlet.Utils.*;
+import static gitlet.Repository.COMMITS_DIR;
+import static gitlet.Utils.join;
+import static gitlet.Utils.writeObject;
 
-/**
- * Represents a gitlet commit object.
- * TODO: It's a good idea to give a description here of what else this Class
- * does at a high level.
+/** Represents a gitlet commit object.
+ *  TODO: It's a good idea to give a description here of what else this Class
+ *  does at a high level.
  *
- * @author TODO
+ *  @author Shuyuan Wang
  */
 public class Commit implements Serializable {
-    /**
-     * TODO: add instance variables here.
-     *
-     * List all instance variables of the Commit class here with a useful
-     * comment above them describing what that variable represents and how that
-     * variable is used. We've provided one example for `message`.
-     */
-
-    /**
-     * The message of this Commit.
-     */
-    private String message;
+    /** The timestamp of this Commit. */
     private Date date;
-    private HashMap<String, String> mapping;
-    private String parent1;
-    private String parent2;
+    /** The message of this Commit. */
+    private String message;
+    /** The blobs in this Commit -- A Map from filename to SHA1 ID. */
+    private HashMap<String, String> blobs;
+    /** The parent of this Commit. */
+    private String[] parents;
 
-
-    public Commit(String msg, Date date) {
-        this.message = msg;
-        this.date = new Date();
-    }
-
-    public Commit(String msg, Date date, String parent1) {
-        this.message = msg;
+    /** Constructor */
+    Commit(Date date, String message, String parent) {
         this.date = date;
-        this.parent1 = parent1;
+        this.message = message;
+        this.parents = new String[2];
+        this.parents[0] = parent;
+        this.blobs = new HashMap<>();
     }
 
-    public Commit(String msg, Date date, String parent1, String parent2) {
-        this.message = msg;
+    Commit(Date date, String message, String parent, HashMap<String, String> blobs) {
         this.date = date;
-        this.parent1 = parent1;
-        this.parent2 = parent2;
+        this.message = message;
+        this.parents = new String[2];
+        this.parents[0] = parent;
+        this.blobs = blobs;
     }
 
-    public String saveCommit() {
-        String sha1Value = sha1(this);
-        File file = join(Repository.COMMITS_DIR, sha1Value);
-        try {
-            file.createNewFile();
-        } catch (IOException e) {
-            throw error("wrong0 in saveCommit");
+    Commit(Date date, String message, String[] parents, HashMap<String, String> blobs) {
+        this.date = date;
+        this.message = message;
+        this.parents = new String[2];
+        this.parents[0] = parents[0];
+        this.parents[1] = parents[1];
+        this.blobs = blobs;
+    }
+
+    public HashMap<String, String> getBlobs() {
+        return blobs;
+    }
+
+    public String getParent() {
+        return parents[0];
+    }
+
+    public String[] getParents() {
+        return parents;
+    }
+
+    public String getMergeParent() {
+        return parents[1];
+    }
+
+    public String getMessage() {
+        return message;
+    }
+
+    public String getFormattedTime() {
+        DateFormat df = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.ENGLISH);
+        return df.format(date);
+    }
+
+    /** Save the commit Obj to a persistent file named ID (which should be its SHA1). */
+    public void save(String ID) {
+        File commitPrefix = join(COMMITS_DIR, ID.substring(0, 2));  // To accelerate the abbreviation search.
+        if (!commitPrefix.exists()) {
+            commitPrefix.mkdir();
         }
-        writeObject(file, this);
-        return sha1Value;
+        writeObject(join(commitPrefix, ID.substring(2)), this);
     }
 
-    public String getSha1(String str) {
-        return mapping.getOrDefault(str, null);
+    public boolean tracks(String fileName) {
+        return blobs.containsKey(fileName);
+    }
+
+    public String fileVersion(String fileName) {
+        return blobs.get(fileName);
+    }
+
+    boolean isMergeCommit() {
+        return parents[1] != null;
+    }
+
+    /** The default Object class' toString() method prints the location of the object in memory */
+    public String toString() {
+        return date.toString() + message + blobs.toString() + parents.toString();
     }
 }
