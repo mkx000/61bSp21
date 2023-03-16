@@ -6,7 +6,6 @@ package gitlet;
  * @author TODO
  */
 public class Main {
-
     /**
      * Usage: java gitlet.Main ARGS, where ARGS contains
      * <COMMAND> <OPERAND1> <OPERAND2> ...
@@ -31,6 +30,13 @@ public class Main {
                     System.exit(0);
                 }
                 Repository.add(args[1]);
+                break;
+            case "commit":
+                if (!validateArgs(args, 2)) {
+                    System.out.println("Incorrect operands.");
+                    System.exit(0);
+                }
+                Repository.commit(args[1]);
                 break;
             case "checkout":
                 break;

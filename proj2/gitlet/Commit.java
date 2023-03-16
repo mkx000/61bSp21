@@ -2,15 +2,21 @@ package gitlet;
 
 // TODO: any imports you need here
 
+import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.Date; // TODO: You'll likely use this in this class
+import java.util.List;
 import java.util.TreeMap;
 
-/** Represents a gitlet commit object.
- *  TODO: It's a good idea to give a description here of what else this Class
- *  does at a high level.
+import static gitlet.Utils.*;
+
+/**
+ * Represents a gitlet commit object.
+ * TODO: It's a good idea to give a description here of what else this Class
+ * does at a high level.
  *
- *  @author TODO
+ * @author TODO
  */
 public class Commit implements Serializable {
     /**
@@ -21,21 +27,63 @@ public class Commit implements Serializable {
      * variable is used. We've provided one example for `message`.
      */
 
-    /** The message of this Commit. */
+    /**
+     * The message of this Commit.
+     */
     private String message;
     private Date date;
-    private transient Commit parent1 = null;
-    private transient Commit parent2 = null;
+    public transient Commit parent1;
+    public transient Commit parent2;
 
-    TreeMap<String, String> mapping;
+    //working treeµÄ¿ìÕÕ
+    public Index index;
 
-    public Commit(String msg){
-        message = msg;
-        date = new Date();
+    public Commit(String msg, Date date) {
+        this.message = msg;
+        this.date = date;
+        index = new Index();
     }
 
+    public Commit(String msg, Date date, Commit parent1) {
+        this.message = msg;
+        this.date = date;
+        this.parent1 = parent1;
+        this.parent1 = Repository.getHeadCommit();
+        index = new Index(parent1);
+    }
 
-//    public static void main(String[] args) {
-//        System.out.println(new Date(0));
-//    }
+    public Commit(String msg, Date date, Commit parent1, Commit parent2) {
+        this.message = msg;
+        this.date = date;
+        this.parent1 = parent1;
+        this.parent2 = parent2;
+    }
+
+    public String saveCommit() {
+        String sha1Value = sha1(this);
+        File file = join(Repository.COMMITS_DIR, sha1Value);
+        try {
+            file.createNewFile();
+        } catch (IOException e) {
+            System.out.println("can't create a new file in saveCommit method");
+        }
+        writeObject(file, this);
+        return sha1Value;
+    }
+
+    public String experiment() {
+        String sha1Value = sha1(this);
+        System.out.println(sha1Value);
+
+        File file = join(System.getProperty("user.dir"), sha1Value);
+        try {
+            file.createNewFile();
+        } catch (Exception e) {
+            System.out.println();
+        }
+        writeObject(file, this);
+        Commit commit = readObject(file, Commit.class);
+        System.out.println(commit.date);
+        return "";
+    }
 }

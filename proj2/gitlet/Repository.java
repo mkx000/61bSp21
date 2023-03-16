@@ -1,8 +1,7 @@
 package gitlet;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 
 import static gitlet.Utils.*;
 
@@ -32,15 +31,19 @@ public class Repository {
      * The .gitlet directory.
      */
     public static final File GITLET_DIR = join(CWD, ".gitlet");
-    public static final File HEAD = join(CWD, "HEAD");
-
 
     public static final File COMMITS_DIR = join(GITLET_DIR, "commits");
     public static final File STAGE_DIR = join(GITLET_DIR, "stage");
-    public static final File TRACKED_DIR = join(GITLET_DIR, "tracked");
     public static final File BLOBS_DIR = join(GITLET_DIR, "blobs");
 
-    private static HashSet<String> removal = null;
+    //存储HEAD or branch对应的commit sha1代码
+    public static final File HEAD = join(GITLET_DIR, "HEAD");
+    public static final File master = join(GITLET_DIR, "master");
+    public static File branch;
+    public static HashSet<File> branches = new HashSet<>();
+
+    //将被删除的文件名
+    public static HashSet<String> removal = new HashSet<>();
 
     public static void initRepo() {
         if (GITLET_DIR.exists()) {
@@ -48,16 +51,22 @@ public class Repository {
             System.exit(0);
         }
         try {
-            removal = new HashSet<String>();
             GITLET_DIR.mkdir();
-            STAGE_DIR.mkdir();
             COMMITS_DIR.mkdir();
-            TRACKED_DIR.mkdir();
+            STAGE_DIR.mkdir();
             BLOBS_DIR.mkdir();
+            HEAD.createNewFile();
+            master.createNewFile();
+            branch = master;
         } catch (Exception e) {
-            throw new GitletException("can't create .gitlet or stage or commits directory");
+            System.out.println("can't create .gitlet or stage or commits directory");
+            System.exit(0);
         }
-        Commit initialCommit = new Commit("initial commit");
+        Commit initialCommit = new Commit("initial commit", new Date(0));
+        String sha1Value = initialCommit.saveCommit();
+        writeContents(HEAD, sha1Value);
+        writeContents(master, sha1Value);
+        branches.add(master);
     }
 
     public static void add(String fileName) {
@@ -66,19 +75,50 @@ public class Repository {
             System.out.println("File does not exist.");
             System.exit(0);
         }
-        String str = sha1(file);
-        /**
-         *  last commit 有这个文件
-         */
-        if (true) {
 
+        Commit currentCommit = getHeadCommit();
+        String curSha1 = currentCommit.index.mapping.getOrDefault(fileName, null);
+        String thisSha1 = sha1(file);
+        if (thisSha1.equals(curSha1)) {
+            restrictedDelete(join(STAGE_DIR, fileName)); // stage区删去已经提交的文件
         } else {
-            Utils.writeObject(join(STAGE_DIR, fileName), file);
+            writeContents(join(STAGE_DIR, fileName), readContentsAsString(file)); //内容不一致stage区重写fileName文件
         }
+        removal.remove(fileName);
     }
 
-    public static void commit() {
-        String file = Utils.plainFilenamesIn(STAGE_DIR).get(0);
+    public static void commit(String msg) {
+        if (msg.equals("")) {
+            System.out.println("Please enter a commit message.");
+            System.exit(0);
+        }
 
+        List<String> staged = plainFilenamesIn(STAGE_DIR);
+        if (staged.isEmpty()) {
+            System.out.println("No changes added to the commit.");
+            System.exit(0);
+        }
+
+        Commit newCommit = new Commit(msg, new Date(), getHeadCommit());
+        String sha1Value = newCommit.saveCommit();
+        writeContents(HEAD, sha1Value);
+        writeContents(branch, sha1Value);
+        /**
+         *  clean stage area
+         */
+        for (String file : staged) {
+            restrictedDelete(join(STAGE_DIR, file));
+        }
+
+
+    }
+
+    public static Commit getHeadCommit() {
+        // init repo时HEAD为null
+        String head = readContentsAsString(HEAD);
+        if (head.isEmpty()) {
+            return null;
+        }
+        return readObject(join(COMMITS_DIR, readContentsAsString(HEAD)), Commit.class);
     }
 }
