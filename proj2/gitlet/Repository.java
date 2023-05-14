@@ -5,10 +5,11 @@ import java.util.*;
 
 import static gitlet.Utils.*;
 
-/** Represents a gitlet repository.
- *  Provides interfaces for all the commands and their helper methods.
+/**
+ * Represents a gitlet repository.
+ * Provides interfaces for all the commands and their helper methods.
  *
- *  @author Shuyuan Wang
+ * @author Shuyuan Wang
  */
 public class Repository {
     /**
@@ -104,18 +105,19 @@ public class Repository {
         Index stagingArea = Index.getStagingArea();
         // rm and then add again.
         if (stagingArea.removed.containsKey(fileName)
-            && stagingArea.removed.get(fileName).equals(ID)) {
+                && stagingArea.removed.get(fileName).equals(ID)) {
             stagingArea.removed.remove(fileName);
-        // New file or modified the first time.
+            // New file or modified the first time.
         } else if (!stagingArea.staged.containsKey(fileName)) {
             if (!headCommit.tracks(fileName) || !headCommit.fileVersion(fileName).equals(ID)) {
                 stagingArea.staged.put(fileName, ID);
             } else {
                 return;
             }
-        // Staged and then modified.
+            // Staged and then modified.
         } else if (!stagingArea.staged.get(fileName).equals(ID)) {
-            stagingArea.staged.put(fileName, ID);;
+            stagingArea.staged.put(fileName, ID);
+            ;
         } else {
             return;
         }
@@ -245,7 +247,7 @@ public class Repository {
         returnSB.append("commit " + ID + "\n");
         if (commit.isMergeCommit()) {
             returnSB.append(
-                "Merge: " + commit.getParent().substring(0, 7) + " " + commit.getMergeParent().substring(0, 7) + "\n"
+                    "Merge: " + commit.getParent().substring(0, 7) + " " + commit.getMergeParent().substring(0, 7) + "\n"
             );
         }
         returnSB.append("Date: " + commit.getFormattedTime() + "\n");
@@ -662,7 +664,7 @@ public class Repository {
         Commit mergeCommit = new Commit(
                 new Date(),
                 "Merged " + branchName + " into " + curBranch + ".",
-                new String[] {curCommitID, mergedCommitID},
+                new String[]{curCommitID, mergedCommitID},
                 getNewBlobs(curCommit, changes)
         );
         String newID = sha1(mergeCommit.toString());
@@ -717,9 +719,9 @@ public class Repository {
         HashSet<String> modifiedOrAddInMerge = new HashSet<String>();
         for (Map.Entry<String, String> entry : mergedCommit.getBlobs().entrySet()) {
             if (splitPoint.tracks(entry.getKey()) &&
-            !splitPoint.fileVersion(entry.getKey()).equals(entry.getValue()) &&
-            curCommit.tracks(entry.getKey()) &&
-            curCommit.fileVersion(entry.getKey()).equals(splitPoint.fileVersion(entry.getKey()))) {
+                    !splitPoint.fileVersion(entry.getKey()).equals(entry.getValue()) &&
+                    curCommit.tracks(entry.getKey()) &&
+                    curCommit.fileVersion(entry.getKey()).equals(splitPoint.fileVersion(entry.getKey()))) {
                 modifiedOrAddInMerge.add(entry.getKey());
             } else if (!splitPoint.tracks(entry.getKey()) && !curCommit.tracks(entry.getKey())) {
                 modifiedOrAddInMerge.add(entry.getKey());
@@ -732,8 +734,8 @@ public class Repository {
         HashSet<String> deletedInMerge = new HashSet<String>();
         for (Map.Entry<String, String> entry : curCommit.getBlobs().entrySet()) {
             if (splitPoint.tracks(entry.getKey()) &&
-            !mergedCommit.tracks(entry.getKey()) &&
-            curCommit.fileVersion(entry.getKey()).equals(splitPoint.fileVersion(entry.getKey()))) {
+                    !mergedCommit.tracks(entry.getKey()) &&
+                    curCommit.fileVersion(entry.getKey()).equals(splitPoint.fileVersion(entry.getKey()))) {
                 deletedInMerge.add(entry.getKey());
             }
         }
@@ -745,19 +747,19 @@ public class Repository {
         for (Map.Entry<String, String> entry : curCommit.getBlobs().entrySet()) {
             /** Both add but with diff content. */
             if (!splitPoint.tracks(entry.getKey()) &&
-            mergedCommit.tracks(entry.getKey()) &&
-            !mergedCommit.fileVersion(entry.getKey()).equals(entry.getValue())) {
+                    mergedCommit.tracks(entry.getKey()) &&
+                    !mergedCommit.fileVersion(entry.getKey()).equals(entry.getValue())) {
                 bothModified.add(entry.getKey());
-            /** Both modified. */
+                /** Both modified. */
             } else if (splitPoint.tracks(entry.getKey()) &&
-            !splitPoint.fileVersion(entry.getKey()).equals(entry.getValue()) &&
-            mergedCommit.tracks(entry.getKey()) &&
-            !mergedCommit.fileVersion(entry.getKey()).equals(splitPoint.fileVersion(entry.getKey()))) {
+                    !splitPoint.fileVersion(entry.getKey()).equals(entry.getValue()) &&
+                    mergedCommit.tracks(entry.getKey()) &&
+                    !mergedCommit.fileVersion(entry.getKey()).equals(splitPoint.fileVersion(entry.getKey()))) {
                 bothModified.add(entry.getKey());
-            /** Modified in curCommit and deleted in mergedCommit. */
+                /** Modified in curCommit and deleted in mergedCommit. */
             } else if (splitPoint.tracks(entry.getKey()) &&
-            !splitPoint.fileVersion(entry.getKey()).equals(entry.getValue()) &&
-            !mergedCommit.tracks(entry.getKey())) {
+                    !splitPoint.fileVersion(entry.getKey()).equals(entry.getValue()) &&
+                    !mergedCommit.tracks(entry.getKey())) {
                 bothModified.add(entry.getKey());
             }
         }
@@ -765,8 +767,8 @@ public class Repository {
         for (Map.Entry<String, String> entry : mergedCommit.getBlobs().entrySet()) {
             /** Modified in mergedCommit and deleted in curCommit. */
             if (splitPoint.tracks(entry.getKey()) &&
-            !splitPoint.fileVersion(entry.getKey()).equals(entry.getValue()) &&
-            !curCommit.tracks(entry.getKey())) {
+                    !splitPoint.fileVersion(entry.getKey()).equals(entry.getValue()) &&
+                    !curCommit.tracks(entry.getKey())) {
                 bothModified.add(entry.getKey());
             }
         }
@@ -774,13 +776,13 @@ public class Repository {
     }
 
     private static void writeConflict(String fileName, Commit curCommit, Commit mergedCommit) {
-            StringBuilder returnSB = new StringBuilder();
-            File conflictFile = join(CWD, fileName);
-            returnSB.append("<<<<<<< HEAD\n");
-            returnSB.append(readBlobContentAsString(curCommit, fileName));
-            returnSB.append("=======\n");
-            returnSB.append(readBlobContentAsString(mergedCommit, fileName));
-            returnSB.append(">>>>>>>\n");
-            writeContents(conflictFile, returnSB.toString());
+        StringBuilder returnSB = new StringBuilder();
+        File conflictFile = join(CWD, fileName);
+        returnSB.append("<<<<<<< HEAD\n");
+        returnSB.append(readBlobContentAsString(curCommit, fileName));
+        returnSB.append("=======\n");
+        returnSB.append(readBlobContentAsString(mergedCommit, fileName));
+        returnSB.append(">>>>>>>\n");
+        writeContents(conflictFile, returnSB.toString());
     }
 }
