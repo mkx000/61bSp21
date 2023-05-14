@@ -1,6 +1,3 @@
-import edu.princeton.cs.algs4.UF;
-
-
 /**
  * Performance requirements.  The constructor should take time proportional to N2;
  * all methods should take constant time plus a constant number of calls
