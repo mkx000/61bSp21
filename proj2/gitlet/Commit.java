@@ -112,6 +112,10 @@ public class Commit implements Dumpable {
         return Utils.readObject(Utils.join(Repository.COMMITS_DIR, parent1ID), Commit.class);
     }
 
+    public String getMessage() {
+        return message;
+    }
+
     public String getSha1() {
         return sha1;
     }

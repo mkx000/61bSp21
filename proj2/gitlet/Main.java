@@ -28,6 +28,9 @@ public class Main {
                 break;
             case "commit":
                 validateRepoExists();
+                if (args.length == 1 || args[1].equals("")) {
+                    Utils.exitWithMessage("Please enter a commit message.");
+                }
                 validateNumArgs(args, 2);
                 Repository.commit(args[1]);
                 break;
@@ -35,6 +38,7 @@ public class Main {
                 validateRepoExists();
                 validateNumArgs(args, 2);
                 Repository.rm(args[1]);
+                break;
             case "log":
                 validateRepoExists();
                 validateNumArgs(args, 1);
@@ -42,6 +46,18 @@ public class Main {
                 break;
             case "global-log":
                 validateRepoExists();
+                validateNumArgs(args, 1);
+                Repository.globalLog();
+                break;
+            case "find":
+                validateRepoExists();
+                validateNumArgs(args, 2);
+                Repository.find(args[1]);
+                break;
+            case "status":
+                validateRepoExists();
+                validateNumArgs(args, 1);
+                Repository.status();
                 break;
             case "checkout":
                 validateRepoExists();
@@ -63,7 +79,7 @@ public class Main {
     }
 
     public static void validateRepoExists() {
-        if (!Repository.CWD.exists()) {
+        if (!Repository.GITLET_DIR.exists()) {
             Utils.exitWithMessage("Not in an initialized Gitlet directory.");
         }
     }

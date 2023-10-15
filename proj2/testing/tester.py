@@ -1,6 +1,6 @@
 import sys, re
 from subprocess import \
-     check_output, PIPE, STDOUT, DEVNULL, CalledProcessError, TimeoutExpired
+    check_output, PIPE, STDOUT, DEVNULL, CalledProcessError, TimeoutExpired
 from os.path import abspath, basename, dirname, exists, join, splitext
 from getopt import getopt, GetoptError
 from os import chdir, environ, getcwd, mkdir, remove, access, W_OK
@@ -99,18 +99,24 @@ DEBUG_MSG = \
     If you would like to step into and debug the command, type 's'. Once you have done so, go back to IntelliJ and click the debug button.
     If you would like to move on to the next command, type 'n'."""
 
+
 def Usage():
     print(SHORT_USAGE, file=sys.stderr)
     sys.exit(1)
 
+
 Mat = None
+
+
 def Match(patn, s):
     global Mat
     Mat = re.match(patn, s)
     return Mat
 
+
 def Group(n):
     return Mat.group(n)
+
 
 def contents(filename):
     try:
@@ -119,15 +125,17 @@ def contents(filename):
     except FileNotFoundError:
         return None
 
+
 def editDistance(s1, s2):
     dist = [list(range(len(s2) + 1))] + \
-           [ [i] + [ 0 ] * len(s2) for i in range(1, len(s1) + 1) ]
+           [[i] + [0] * len(s2) for i in range(1, len(s1) + 1)]
     for i in range(1, len(s1) + 1):
         for j in range(1, len(s2) + 1):
-            dist[i][j] = min(dist[i-1][j] + 1,
-                             dist[i][j-1] + 1,
-                             dist[i-1][j-1] + (s1[i-1] != s2[j-1]))
+            dist[i][j] = min(dist[i - 1][j] + 1,
+                             dist[i][j - 1] + 1,
+                             dist[i - 1][j - 1] + (s1[i - 1] != s2[j - 1]))
     return dist[len(s1)][len(s2)]
+
 
 def createTempDir(base):
     for n in range(100):
@@ -140,8 +148,10 @@ def createTempDir(base):
     else:
         raise ValueError("could not create temp directory for {}".format(base))
 
+
 def cleanTempDir(dir):
     rmtree(dir, ignore_errors=True)
+
 
 def doDelete(name, dir):
     try:
@@ -149,12 +159,14 @@ def doDelete(name, dir):
     except OSError:
         pass
 
+
 def doCopy(dest, src, dir):
     try:
         doDelete(dest, dir)
         copyfile(join(src_dir, src), join(dir, dest))
     except OSError:
         raise ValueError("file {} could not be copied to {}".format(src, dest))
+
 
 def doExecute(cmnd, dir, timeout, line_num):
     here = getcwd()
@@ -168,7 +180,7 @@ def doExecute(cmnd, dir, timeout, line_num):
             print("[line {}]: gitlet {}".format(line_num, cmnd))
             input_prompt = ">>> "
             next_cmd = input(input_prompt)
-            while(next_cmd not in "ns"):
+            while (next_cmd not in "ns"):
                 print("Please enter either 'n' or 's'.")
                 next_cmd = input(input_prompt)
 
@@ -186,26 +198,31 @@ def doExecute(cmnd, dir, timeout, line_num):
     finally:
         chdir(here)
 
+
 def doCommand(full_cmnd, timeout, skip_first_line=False):
     out = check_output(full_cmnd, shell=True, universal_newlines=True,
-                        stdin=DEVNULL, stderr=STDOUT, timeout=timeout)
+                       stdin=DEVNULL, stderr=STDOUT, timeout=timeout)
     if skip_first_line:
         out = out.split("\n", 1)[1]
 
     return out
+
 
 def canonicalize(s):
     if s is None:
         return None
     return re.sub('\r', '', s)
 
+
 def fileExists(f, dir):
     return exists(join(dir, f))
+
 
 def correctFileOutput(name, expected, dir):
     userData = canonicalize(contents(join(dir, name)))
     stdData = canonicalize(contents(join(src_dir, expected)))
     return userData == stdData
+
 
 def correctProgramOutput(expected, actual, last_groups, is_regexp):
     expected = re.sub(r'[ \t]+\n', '\n', '\n'.join(expected))
@@ -217,7 +234,7 @@ def correctProgramOutput(expected, actual, last_groups, is_regexp):
     if is_regexp:
         try:
             if not Match(expected.rstrip() + r"\Z", actual) \
-                   and not Match(expected.rstrip() + r"\Z", actual.rstrip()):
+                    and not Match(expected.rstrip() + r"\Z", actual.rstrip()):
                 return False
         except:
             raise ValueError("bad pattern")
@@ -225,6 +242,7 @@ def correctProgramOutput(expected, actual, last_groups, is_regexp):
     elif editDistance(expected.rstrip(), actual.rstrip()) > output_tolerance:
         return False
     return True
+
 
 def reportDetails(test, included_files, line_num):
     if show is None:
@@ -245,11 +263,13 @@ def reportDetails(test, included_files, line_num):
         print(text)
         print("-" * (42 + len(base)))
 
+
 def chop_nl(s):
     if s and s[-1] == '\n':
         return s[:-1]
     else:
         return s
+
 
 def line_reader(f, prefix):
     n = 0
@@ -266,6 +286,7 @@ def line_reader(f, prefix):
                     yield from line_reader(included_file, prefix + str(n) + ".")
     except FileNotFoundError:
         raise ValueError("file {} not found".format(f))
+
 
 def doTest(test):
     last_groups = []
@@ -387,6 +408,7 @@ def doTest(test):
     finally:
         if not keep:
             cleanTempDir(tmpdir)
+
 
 if __name__ == "__main__":
     show = None

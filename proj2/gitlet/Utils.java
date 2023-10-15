@@ -286,7 +286,7 @@ class Utils {
 
     static void exitWithMessage(String msg) {
         message(msg);
-        System.exit(1);
+        System.exit(0);
     }
 
     static File createFile(String AbsolutefileName) {

@@ -1,9 +1,7 @@
 package gitlet;
 
 import java.io.File;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 
 import static gitlet.Utils.*;
 
@@ -173,6 +171,59 @@ public class Repository {
             System.out.println(commit);
             commit = commit.getParentCommit();
         }
+    }
+
+    public static void globalLog() {
+        for (File file : COMMITS_DIR.listFiles()) {
+            Commit commit = Commit.read(file.getName());
+            System.out.println(commit);
+        }
+    }
+
+    public static void find(String msg) {
+        boolean found = false;
+        for (File file : COMMITS_DIR.listFiles()) {
+            Commit commit = Commit.read(file.getName());
+            if (commit.getMessage().equals(msg)) {
+                System.out.println(commit.getSha1());
+                found = true;
+            }
+        }
+        if (!found) {
+            Utils.exitWithMessage("Found no commit with that message.");
+        }
+    }
+
+    private static void printHeaders(String section) {
+        System.out.println("=== " + section + " ===");
+    }
+
+    public static void status() {
+        printHeaders("Branches");
+        String head = readContentsAsString(HEAD);
+        TreeSet<String> branches = new TreeSet<>();
+        for (String branchName : branches) {
+            if (!branchName.equals(head)) {
+                System.out.println(branchName);
+            } else {
+                System.out.println("*" + branchName);
+            }
+        }
+        System.out.println();
+        printHeaders("Staged Files");
+        HashSet<String> additions = getAdditions();
+        for (String fileName : additions) {
+            System.out.println(fileName);
+        }
+        System.out.println();
+        printHeaders("Removed Files");
+        HashSet<String> removals = getRemovals();
+        for (String fileName : removals) {
+            System.out.println(fileName);
+        }
+        System.out.println();
+        printHeaders("Modifications Not Staged For Commit");
+        printHeaders("Untracked Files");
     }
 
     private boolean isTracked(String relativeFileName) {
