@@ -1,0 +1,8 @@
+I definitions.inc
+I init.inc
+> init
+${ARBLINE}
+<<<*
+> log
+${COMMIT_LOG}
+<<<*

@@ -1,0 +1,8 @@
+I definitions.inc
+I init-add-commit-twice.inc
+> global-log
+${ARBLINES}
+<<<*
+> global-log
+${COMMIT_LOG}
+<<<*

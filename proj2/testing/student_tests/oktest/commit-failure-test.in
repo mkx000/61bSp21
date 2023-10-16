@@ -1,0 +1,14 @@
+I definitions.inc
+I init-add-commit.inc
+> commit  "a commit"
+No changes added to the commit
+<<<
+> commit message
+No changes added to the commit
+<<<
+> commit "a commit" "AAA"
+Incorrect operands.
+<<<
+> commit
+PLease enter a commit message.
+<<<

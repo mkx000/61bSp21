@@ -1,0 +1,55 @@
+# A simple test of adding, committing, modifying, and checking out.
+I definitions.inc
+> init
+<<<
++ wug.txt wug.txt
+> add wug.txt
+<<<
+# dont' remove wug.txt if it is not tracked
+> rm wug.txt
+<<<
+E wug.txt
+> add wug.txt
+<<<
+> commit "added wug"
+<<<
+> rm wug.txt
+<<<
+# must remove wug.txt if it is tracked
+> commit "removed wug"
+<<<
+* wug.txt
+> log
+===
+${COMMIT_HEAD}
+removed wug
+
+===
+${COMMIT_HEAD}
+added wug
+
+===
+${COMMIT_HEAD}
+initial commit
+
+<<<*
+# UID of second version
+D UID2 "${1}"
+# UID of current version
+D UID1 "${2}"
+# checkout wug.txt from first version
+> checkout ${UID1} -- wug.txt
+<<<*
+= wug.txt wug.txt
+> checkout ${UID2} -- wug.txt
+File does not exist in that commit.
+<<<*
+> checkout xxx -- wug.txt
+No commit with that id exists.
+<<<
+> checkout nonexistentBranch
+No such branch exists.
+<<<
+> checkout master
+No need to checkout the current branch.
+<<<

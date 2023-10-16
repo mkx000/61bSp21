@@ -1,0 +1,12 @@
+>
+Please enter a command.
+<<<
+> nonExistentCommand
+No command with that name exists.
+<<<
+> init wrongOperands
+Incorrect operands.
+<<<
+> log
+Not in an initialized Gitlet directory.
+<<<

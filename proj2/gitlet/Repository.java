@@ -202,6 +202,9 @@ public class Repository {
         printHeaders("Branches");
         String head = readContentsAsString(HEAD);
         TreeSet<String> branches = new TreeSet<>();
+        for (File file : BRANCHES_DIR.listFiles()) {
+            branches.add(file.getName());
+        }
         for (String branchName : branches) {
             if (!branchName.equals(head)) {
                 System.out.println(branchName);

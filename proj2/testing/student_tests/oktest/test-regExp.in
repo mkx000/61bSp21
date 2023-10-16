@@ -1,0 +1,11 @@
+I definitions.inc
+I init-add-commit-twice.inc
+> init
+${ARBLINE}
+<<<*
+> log
+${ARBLINES}
+<<<*
+> log
+${COMMIT_LOG}
+<<<*
