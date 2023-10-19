@@ -66,6 +66,22 @@ public class Main {
                 }
                 Repository.checkout(args);
                 break;
+            case "branch":
+                validateRepoExists();
+                validateNumArgs(args, 2);
+                Repository.branch(args[1]);
+            case "rm-branch":
+                validateRepoExists();
+                validateNumArgs(args, 2);
+                Repository.rmBranch(args[1]);
+            case "reset":
+                validateRepoExists();
+                validateNumArgs(args, 2);
+                Repository.reset(args[1]);
+            case "merge":
+                validateRepoExists();
+                validateNumArgs(args, 2);
+                Repository.merge(args[1]);
             default:
                 System.out.println("No command with that name exists.");
                 System.exit(0);

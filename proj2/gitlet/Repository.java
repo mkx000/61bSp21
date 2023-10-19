@@ -276,13 +276,20 @@ public class Repository {
         }
 
         String commitID = readContentsAsString(file);
+        checkoutFromCommitID(commitID);
+    }
+
+    private static void checkoutFromCommitID(String commitID) {
         Commit commit = Commit.read(commitID);
         HashSet<String> trackedFiles = commit.getTrackedFiles();
         HashSet<String> untrackedFiles = getUntrackedFiles();
         for (String fileName : trackedFiles) {
             if (untrackedFiles.contains(fileName)) {
                 Utils.exitWithMessage("There is an untracked file in the way; delete it or add and commit it first.");
-            } else {
+            }
+        }
+        for (String fileName : trackedFiles) {
+            if (!untrackedFiles.contains(fileName)) {
                 checkoutFileFromCommit(commitID, fileName);
             }
         }
@@ -295,10 +302,71 @@ public class Repository {
             String branch = readContentsAsString(HEAD);
             String headCommitID = readContentsAsString(join(BRANCHES_DIR, branch));
             checkoutFileFromCommit(headCommitID, args[2]);
+            clearStagingArea();
         } else if (args.length == 4) {
             checkoutFileFromCommit(args[1], args[3]);
         }
     }
 
+    public static void branch(String branchName) {
+        File file = join(BRANCHES_DIR, branchName);
+        if (file.exists()) {
+            Utils.exitWithMessage("A branch with that name already exists.");
+        }
+        String headCommitID = readContentsAsString(join(BRANCHES_DIR, readContentsAsString(HEAD)));
+        writeContents(file, headCommitID);
+    }
 
+    public static void rmBranch(String branchName) {
+        File file = join(BRANCHES_DIR, branchName);
+        if (!file.exists()) {
+            Utils.exitWithMessage("A branch with that name does not exist.");
+        }
+        String headBranch = readContentsAsString(HEAD);
+        if (branchName.equals(headBranch)) {
+            Utils.exitWithMessage("Cannot remove the current branch.");
+        }
+        file.delete();
+    }
+
+    public static void reset(String commitID) {
+        File file = join(COMMITS_DIR, commitID);
+        if (!file.exists()) {
+            Utils.exitWithMessage("No commit with that id exists.");
+        }
+        checkoutFromCommitID(commitID);
+        clearStagingArea();
+        writeContents(join(BRANCHES_DIR, readContentsAsString(HEAD)), commitID);
+    }
+
+    public static void merge(String branchName) {
+        HashSet<String> additions = getAdditions();
+        HashSet<String> removals = getRemovals();
+        if (!additions.isEmpty() || !removals.isEmpty()) {
+            Utils.exitWithMessage("You have uncommitted changes.");
+        }
+        File file = join(BRANCHES_DIR, branchName);
+        if (!file.exists()) {
+            Utils.exitWithMessage("A branch with that name does not exist.");
+        } else if (file.getName().equals(readContentsAsString(HEAD))) {
+            Utils.exitWithMessage("Cannot merge a branch with itself.");
+        }
+
+        Commit givenBranch = Commit.read(readContentsAsString(file));
+        Commit splitPoint = getHeadCommit().latestCommonAncestorCommit(readContentsAsString(file));
+        if (splitPoint == null) {
+            Utils.exitWithMessage("Split point is null");
+        }
+        if (splitPoint.getSha1().equals(givenBranch.getSha1())) {
+            Utils.exitWithMessage("Given branch is an ancestor of the current branch.");
+        } else if (splitPoint.getSha1().equals(readContentsAsString(HEAD))) {
+            checkoutFromCommitID(readContentsAsString(join(BRANCHES_DIR, branchName)));
+            Utils.exitWithMessage("Current branch fast-forwarded.");
+        }
+        Commit headCommit = getHeadCommit();
+        // for files tracked in the splitPoint
+        for (String fileInSplit : splitPoint.getTrackedFiles()) {
+
+        }
+    }
 }

@@ -88,9 +88,55 @@ public class Commit implements Dumpable {
         tree.remove(filename);
     }
 
+    public boolean isFileTracked(String fileName) {
+        return tree.containsKey(fileName);
+    }
     public static Commit read(String sha1) {
         File file = Utils.join(Repository.COMMITS_DIR, sha1);
         return Utils.readObject(file, Commit.class);
+    }
+
+    public Commit latestCommonAncestorCommit(String commitID) {
+        HashSet<String> Ancestors = new HashSet<>();
+        Commit originalCommit = this;
+        Commit originalGivenCommit = Commit.read(commitID);
+        Commit commit = this;
+        Commit givenCommit = Commit.read(commitID);
+        Ancestors.add(commit.getSha1());
+        Ancestors.add(givenCommit.getSha1());
+        Commit latestCommonAncestor = null;
+        while (commit != null && givenCommit != null) {
+            commit = commit.getParentCommit();
+            if (Ancestors.contains(commit.getSha1())) {
+                latestCommonAncestor = commit;
+                break;
+            } else {
+                Ancestors.add(commit.getSha1());
+            }
+            givenCommit = givenCommit.getParentCommit();
+            if (Ancestors.contains(givenCommit.getSha1())) {
+                latestCommonAncestor = givenCommit;
+                break;
+            } else {
+                Ancestors.add(givenCommit.getSha1());
+            }
+        }
+        if (latestCommonAncestor != null)
+            ;
+        else if (commit != null) {
+            while (commit != null) {
+                commit = commit.getParentCommit();
+                if (Ancestors.contains(commit.getSha1()))
+                    latestCommonAncestor = commit;
+            }
+        } else if (givenCommit != null) {
+            while (givenCommit != null) {
+                givenCommit = givenCommit.getParentCommit();
+                if (Ancestors.contains(givenCommit.getSha1()))
+                    latestCommonAncestor = givenCommit;
+            }
+        }
+        return latestCommonAncestor;
     }
 
     public String toString() {
