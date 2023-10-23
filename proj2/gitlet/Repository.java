@@ -169,7 +169,7 @@ public class Repository {
         Commit commit = getHeadCommit();
         while (commit != null) {
             System.out.println(commit);
-            commit = commit.getParentCommit();
+            commit = commit.getFirstParentCommit();
         }
     }
 
@@ -264,6 +264,7 @@ public class Repository {
         writeContents(join(CWD, relativeFileName), content);
     }
 
+
     private static void checkoutBranch(String branch) {
         File file = join(BRANCHES_DIR, branch);
         if (!file.exists()) {
@@ -339,6 +340,32 @@ public class Repository {
         writeContents(join(BRANCHES_DIR, readContentsAsString(HEAD)), commitID);
     }
 
+    private static void checkoutFilesAfterCheck(HashMap<String, String> filesFromCommit) {
+        HashSet<String> untrackedFiles = getUntrackedFiles();
+        for (String fileName : filesFromCommit.keySet()) {
+            if (untrackedFiles.contains(fileName)) {
+                Utils.exitWithMessage("There is an untracked file in the way; delete it,  or add and commit it first.");
+            }
+        }
+        for (Map.Entry<String, String> entry : filesFromCommit.entrySet()) {
+            String fileName = entry.getKey();
+            String blobID = entry.getValue();
+            Blob blob = Blob.read(blobID);
+            String content = blob.getContents();
+            writeContents(join(CWD, fileName), content);
+            Repository.add(fileName);
+        }
+    }
+
+    private static void conflict(String fileName, String headBlobID, String givenBlobID) {
+
+        String headContent = headBlobID == null ? "" : Blob.read(headBlobID).getContents();
+        String givenContent = givenBlobID == null ? "" : Blob.read(givenBlobID).getContents();
+        String content = "<<<<<<< HEAD\n" + headContent + "=======\n" + givenContent + ">>>>>>>\n";
+        writeContents(join(CWD, fileName), content);
+        Repository.add(fileName);
+    }
+
     public static void merge(String branchName) {
         HashSet<String> additions = getAdditions();
         HashSet<String> removals = getRemovals();
@@ -365,8 +392,49 @@ public class Repository {
         }
         Commit headCommit = getHeadCommit();
         // for files tracked in the splitPoint
-        for (String fileInSplit : splitPoint.getTrackedFiles()) {
+        HashSet<String> allFiles = new HashSet<>();
+        allFiles.addAll(splitPoint.getTrackedFiles());
+        allFiles.addAll(headCommit.getTrackedFiles());
+        allFiles.addAll(givenBranch.getTrackedFiles());
 
+        HashMap<String, String> checkoutFiles = new HashMap<>();
+        for (String fileInSplit : allFiles) {
+            String split = splitPoint.blobID(fileInSplit);
+            String head = headCommit.blobID(fileInSplit);
+            String given = givenBranch.blobID(fileInSplit);
+            if (split == null) {
+                if (head == null && given != null) {
+                    checkoutFiles.put(fileInSplit, given);
+                } else if (head != null && given == null) {
+                    continue;
+                } else if (head != null) {
+                    if (!head.equals(given)) {
+                        conflict(fileInSplit, head, given);
+                    }
+                }
+            } else {
+                if (head == null && given == null) {
+                    continue;
+                } else if (head != null && given == null) {
+                    Repository.rm(fileInSplit);
+                } else if (head == null) {
+                    if (!split.equals(given)) {
+                        checkoutFiles.put(fileInSplit, given);
+                    }
+                } else {
+                    if (split.equals(head) && !split.equals(given)) {
+                        checkoutFiles.put(fileInSplit, given);
+                    } else if (!split.equals(head) && split.equals(given)) {
+                        continue;
+                    } else if (!split.equals(head) && !split.equals(given)) {
+                        if (head.equals(given)) {
+                            checkoutFiles.put(fileInSplit, given);
+                        } else {
+                            conflict(fileInSplit, head, given);
+                        }
+                    }
+                }
+            }
         }
     }
 }

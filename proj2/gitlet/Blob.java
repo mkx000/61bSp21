@@ -3,8 +3,8 @@ package gitlet;
 import java.io.File;
 
 public class Blob implements Dumpable {
-    private String contents;
-    private String sha1;
+    private final String contents;
+    private final String sha1;
 
     public void dump() {
         System.out.println("Blob");
@@ -26,13 +26,13 @@ public class Blob implements Dumpable {
     public String stage() {
         File file = Utils.join(Repository.STAGED_DIR, sha1);
         Utils.writeContents(file, contents);
-        return Utils.sha1(contents);
+        return sha1;
     }
 
     public String commit() {
         File file = Utils.join(Repository.BLOBS_DIR, sha1);
         Utils.writeContents(file, contents);
-        return Utils.sha1(contents);
+        return sha1;
     }
 
     public static Blob read(String sha1) {

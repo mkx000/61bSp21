@@ -391,4 +391,5 @@ tramp
 !byow/**/*.gif
 !byow/**/*.wav
 **/Test.java
+junit-tutorial/**
 !proj2/testing/student_tests/**

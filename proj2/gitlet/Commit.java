@@ -27,19 +27,19 @@ public class Commit implements Dumpable {
     /**
      * The message of this Commit.
      */
-    private String message;
-    private Date date;
+    private final String message;
+    private final Date date;
 
     // can read or write String
-    private String parent1ID;
+    private final String parent1ID;
     private String parent2ID;
     private String sha1;
     // cant' read or write transient fields
-    private transient Commit parent1Commit1;
+    private final transient Commit parent1Commit1;
     private transient Commit parent1Commit2;
 
     // 相对路径 -> blob sha1
-    private HashMap<String, String> tree = new HashMap<>();
+    private final HashMap<String, String> tree;
 
     public void dump() {
         System.out.println("Commit");
@@ -59,26 +59,20 @@ public class Commit implements Dumpable {
         } else {
             this.parent1ID = null;
         }
+        parent1Commit2 = null;
+        parent2ID = null;
     }
 
-    /*
     public Commit(String msg, Date date, Commit parent1, Commit parent2) {
         message = msg;
         this.date = date;
-        this.tree = new HashMap<>();
-        for (String filename : parent1.tree.keySet()) {
-            if (!parent2.tree.containsKey(filename)) {
-                tree.put(filename, parent1.tree.get(filename));
-            } else if (!parent1.tree.get(filename).equals(parent2.tree.get(filename))) {
-                tree.put(filename, parent1.tree.get(filename));
-            }
-        }
+        this.tree = parent1.tree;
+        this.tree.putAll(parent2.tree);
         parent1Commit1 = parent1;
         parent1Commit2 = parent2;
-        this.parent1 = parent1.getSha1();
-        this.parent2 = parent2.getSha1();
+        this.parent1ID = parent1.getSha1();
+        this.parent2ID = parent2.getSha1();
     }
-    */
 
     public void add(String filename, String blobID) {
         tree.put(filename, blobID);
@@ -91,29 +85,30 @@ public class Commit implements Dumpable {
     public boolean isFileTracked(String fileName) {
         return tree.containsKey(fileName);
     }
+
     public static Commit read(String sha1) {
-        File file = Utils.join(Repository.COMMITS_DIR, sha1);
+        File dir = Utils.join(Repository.COMMITS_DIR, sha1.substring(0, 2));
+        File file = Utils.join(dir, sha1.substring(2));
         return Utils.readObject(file, Commit.class);
     }
 
     public Commit latestCommonAncestorCommit(String commitID) {
         HashSet<String> Ancestors = new HashSet<>();
-        Commit originalCommit = this;
-        Commit originalGivenCommit = Commit.read(commitID);
         Commit commit = this;
         Commit givenCommit = Commit.read(commitID);
         Ancestors.add(commit.getSha1());
         Ancestors.add(givenCommit.getSha1());
         Commit latestCommonAncestor = null;
+
         while (commit != null && givenCommit != null) {
-            commit = commit.getParentCommit();
+            commit = commit.getFirstParentCommit();
             if (Ancestors.contains(commit.getSha1())) {
                 latestCommonAncestor = commit;
                 break;
             } else {
                 Ancestors.add(commit.getSha1());
             }
-            givenCommit = givenCommit.getParentCommit();
+            givenCommit = givenCommit.getFirstParentCommit();
             if (Ancestors.contains(givenCommit.getSha1())) {
                 latestCommonAncestor = givenCommit;
                 break;
@@ -125,13 +120,13 @@ public class Commit implements Dumpable {
             ;
         else if (commit != null) {
             while (commit != null) {
-                commit = commit.getParentCommit();
+                commit = commit.getFirstParentCommit();
                 if (Ancestors.contains(commit.getSha1()))
                     latestCommonAncestor = commit;
             }
         } else if (givenCommit != null) {
             while (givenCommit != null) {
-                givenCommit = givenCommit.getParentCommit();
+                givenCommit = givenCommit.getFirstParentCommit();
                 if (Ancestors.contains(givenCommit.getSha1()))
                     latestCommonAncestor = givenCommit;
             }
@@ -151,11 +146,12 @@ public class Commit implements Dumpable {
         return f.toString();
     }
 
-    public Commit getParentCommit() {
+    public Commit getFirstParentCommit() {
         if (parent1ID == null) {
             return null;
         }
-        return Utils.readObject(Utils.join(Repository.COMMITS_DIR, parent1ID), Commit.class);
+        File file = Utils.join(Repository.COMMITS_DIR, parent1ID.substring(0, 2), parent1ID.substring(2));
+        return Utils.readObject(file, Commit.class);
     }
 
     public String getMessage() {
@@ -171,10 +167,15 @@ public class Commit implements Dumpable {
     }
 
     public String save() {
-        String sha1 = Utils.sha1(Utils.serialize(this));
+        File dir = Utils.join(Repository.COMMITS_DIR, sha1.substring(0, 2));
+        if (!dir.exists()) {
+            if (!dir.mkdir()) {
+                Utils.exitWithMessage("mkdir failed in Commit.save()");
+            }
+        }
+        String sha1 = Utils.sha1((Object) Utils.serialize(this));
         this.sha1 = sha1;
-        File file = Utils.createFile(Utils.join(Repository.COMMITS_DIR, sha1));
-        Utils.writeObject(file, this);
+        Utils.writeObject(Utils.join(dir, sha1.substring(2)), this);
         return sha1;
     }
 
