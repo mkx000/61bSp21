@@ -3,10 +3,7 @@ package gitlet;
 // TODO: any imports you need here
 
 import java.io.File;
-import java.util.Date; // TODO: You'll likely use this in this class
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Formatter;
+import java.util.*;
 
 /**
  * Represents a gitlet commit object.
@@ -49,16 +46,13 @@ public class Commit implements Dumpable {
         message = msg;
         this.date = date;
         if (parent != null) {
+            this.parent1ID = parent.getSha1();
             this.tree = parent.tree;
         } else {
             this.tree = new HashMap<>();
-        }
-        parent1Commit = parent;
-        if (parent != null) {
-            this.parent1ID = parent.getSha1();
-        } else {
             this.parent1ID = null;
         }
+        parent1Commit = parent;
     }
 
     public Commit(String msg, Date date, Commit parent1, Commit parent2) {
@@ -90,46 +84,48 @@ public class Commit implements Dumpable {
         return Utils.readObject(file, Commit.class);
     }
 
+    private HashMap<String, Integer> bfs(Commit commit) {
+        HashMap<String, Integer> map = new HashMap<>();
+        Queue<Commit> queue = new LinkedList<>();
+        queue.add(commit);
+        map.put(commit.sha1, 0);
+        while (!queue.isEmpty()) {
+            Commit cur = queue.poll();
+            int depth = map.get(cur.sha1);
+            if (cur.parent1ID != null) {
+                if (!map.containsKey(cur.getFirstParentCommit().sha1)) {
+                    queue.add(cur.getFirstParentCommit());
+                    map.put(cur.getFirstParentCommit().sha1, depth + 1);
+                }
+            }
+            if (cur.parent2ID != null) {
+                if (!map.containsKey(cur.getSecondParentCommit().sha1)) {
+                    queue.add(cur.getSecondParentCommit());
+                    map.put(cur.getSecondParentCommit().sha1, depth + 1);
+                }
+            }
+        }
+        return map;
+    }
+
     public Commit latestCommonAncestorCommit(String commitID) {
-        HashSet<String> Ancestors = new HashSet<>();
         Commit commit = this;
         Commit givenCommit = Commit.read(commitID);
-        Ancestors.add(commit.getSha1());
-        Ancestors.add(givenCommit.getSha1());
-        Commit latestCommonAncestor = null;
-
-        while (commit != null && givenCommit != null) {
-            commit = commit.getFirstParentCommit();
-            if (Ancestors.contains(commit.getSha1())) {
-                latestCommonAncestor = commit;
-                break;
-            } else {
-                Ancestors.add(commit.getSha1());
-            }
-            givenCommit = givenCommit.getFirstParentCommit();
-            if (Ancestors.contains(givenCommit.getSha1())) {
-                latestCommonAncestor = givenCommit;
-                break;
-            } else {
-                Ancestors.add(givenCommit.getSha1());
+        HashMap<String, Integer> commitMap = bfs(commit);
+        HashMap<String, Integer> givenCommitMap = bfs(givenCommit);
+        int minDepth = Integer.MAX_VALUE;
+        Commit ancestorCommit = null;
+        for (Map.Entry<String, Integer> entry : commitMap.entrySet()) {
+            String sha1 = entry.getKey();
+            int depth = entry.getValue();
+            if (givenCommitMap.containsKey(sha1)) {
+                if (depth < minDepth) {
+                    minDepth = depth;
+                    ancestorCommit = Commit.read(sha1);
+                }
             }
         }
-        if (latestCommonAncestor != null)
-            ;
-        else if (commit != null) {
-            while (commit != null) {
-                commit = commit.getFirstParentCommit();
-                if (Ancestors.contains(commit.getSha1()))
-                    latestCommonAncestor = commit;
-            }
-        } else if (givenCommit != null) {
-            while (givenCommit != null) {
-                givenCommit = givenCommit.getFirstParentCommit();
-                if (Ancestors.contains(givenCommit.getSha1()))
-                    latestCommonAncestor = givenCommit;
-            }
-        }
-        return latestCommonAncestor;
+        return ancestorCommit;
     }
 
     public String toString() {
@@ -149,6 +145,14 @@ public class Commit implements Dumpable {
             return null;
         }
         File file = Utils.join(Repository.COMMITS_DIR, parent1ID.substring(0, 2), parent1ID.substring(2));
+        return Utils.readObject(file, Commit.class);
+    }
+
+    private Commit getSecondParentCommit() {
+        if (parent2ID == null) {
+            return null;
+        }
+        File file = Utils.join(Repository.COMMITS_DIR, parent2ID.substring(0, 2), parent2ID.substring(2));
         return Utils.readObject(file, Commit.class);
     }
 

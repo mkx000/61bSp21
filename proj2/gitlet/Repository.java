@@ -418,9 +418,9 @@ public class Repository {
         if (splitPoint == null) {
             Utils.exitWithMessage("Split point is null");
         }
-        if (splitPoint.getSha1().equals(givenBranch.getSha1())) {
+        else if (splitPoint.getSha1().equals(givenBranch.getSha1())) {
             Utils.exitWithMessage("Given branch is an ancestor of the current branch.");
-        } else if (splitPoint.getSha1().equals(readContentsAsString(HEAD))) {
+        } else if (splitPoint.getSha1().equals(getHeadCommit().getSha1())) {
             checkoutFromCommitID(readContentsAsString(join(BRANCHES_DIR, branchName)));
             Utils.exitWithMessage("Current branch fast-forwarded.");
         }
