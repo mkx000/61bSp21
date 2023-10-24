@@ -1,0 +1,8 @@
+I definitions.inc
+I init-add-commit.inc
+
+> branch v1
+<<<
+> branch v1
+A branch with that name already exists.
+<<<

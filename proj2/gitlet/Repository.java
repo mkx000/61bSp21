@@ -102,8 +102,13 @@ public class Repository {
         // If the file is identical to the version in the current commit,
         // remove it from the staging area if it is already there
         HashSet<String> additions = getAdditions();
+        HashSet<String> removals = getRemovals();
         HashMap<String, String> tree = getTree();
         String blobID = headCommit.blobID(fileName);
+        if (removals.contains(fileName)) {
+            removals.remove(fileName);
+            writeObject(REMOVALS, removals);
+        }
         if (blobID != null && blobID.equals(blob.getSha1())) {
             if (additions.contains(fileName)) {
                 additions.remove(fileName);
@@ -174,19 +179,23 @@ public class Repository {
     }
 
     public static void globalLog() {
-        for (File file : COMMITS_DIR.listFiles()) {
-            Commit commit = Commit.read(file.getName());
-            System.out.println(commit);
+        for (File file : Objects.requireNonNull(COMMITS_DIR.listFiles())) {
+            for (File fileInFile : Objects.requireNonNull(file.listFiles())) {
+                Commit commit = Commit.read(file.getName() + fileInFile.getName());
+                System.out.println(commit);
+            }
         }
     }
 
     public static void find(String msg) {
         boolean found = false;
-        for (File file : COMMITS_DIR.listFiles()) {
-            Commit commit = Commit.read(file.getName());
-            if (commit.getMessage().equals(msg)) {
-                System.out.println(commit.getSha1());
-                found = true;
+        for (File file : Objects.requireNonNull(COMMITS_DIR.listFiles())) {
+            for (File fileInFile : Objects.requireNonNull(file.listFiles())) {
+                Commit commit = Commit.read(file.getName() + fileInFile.getName());
+                if (commit.getMessage().equals(msg)) {
+                    System.out.println(commit.getSha1());
+                    found = true;
+                }
             }
         }
         if (!found) {
@@ -202,7 +211,7 @@ public class Repository {
         printHeaders("Branches");
         String head = readContentsAsString(HEAD);
         TreeSet<String> branches = new TreeSet<>();
-        for (File file : BRANCHES_DIR.listFiles()) {
+        for (File file : Objects.requireNonNull(BRANCHES_DIR.listFiles())) {
             branches.add(file.getName());
         }
         for (String branchName : branches) {
@@ -226,7 +235,9 @@ public class Repository {
         }
         System.out.println();
         printHeaders("Modifications Not Staged For Commit");
+        System.out.println();
         printHeaders("Untracked Files");
+        System.out.println();
     }
 
     private boolean isTracked(String relativeFileName) {
@@ -236,7 +247,7 @@ public class Repository {
     }
 
     private static HashSet<String> getUntrackedFiles() {
-        HashSet<String> untrackedFiles = new HashSet<>(plainFilenamesIn(CWD));
+        HashSet<String> untrackedFiles = new HashSet<>(Objects.requireNonNull(plainFilenamesIn(CWD)));
         HashSet<String> trackedFiles = getHeadCommit().getTrackedFiles();
         HashSet<String> additions = getAdditions();
         for (String file : trackedFiles) {
@@ -248,7 +259,8 @@ public class Repository {
     }
 
     private static void checkoutFileFromCommit(String commitID, String relativeFileName) {
-        File file = join(COMMITS_DIR, commitID);
+        File file = join(COMMITS_DIR, commitID.substring(0, 2));
+        file = join(file, commitID.substring(2));
         if (!file.exists()) {
             Utils.exitWithMessage("No commit with that id exists.");
         }
@@ -278,34 +290,54 @@ public class Repository {
 
         String commitID = readContentsAsString(file);
         checkoutFromCommitID(commitID);
+        writeContents(HEAD, branch);
     }
 
     private static void checkoutFromCommitID(String commitID) {
         Commit commit = Commit.read(commitID);
         HashSet<String> trackedFiles = commit.getTrackedFiles();
         HashSet<String> untrackedFiles = getUntrackedFiles();
+        HashSet<String> trackedInCurrent = getHeadCommit().getTrackedFiles();
         for (String fileName : trackedFiles) {
             if (untrackedFiles.contains(fileName)) {
                 Utils.exitWithMessage("There is an untracked file in the way; delete it or add and commit it first.");
             }
         }
         for (String fileName : trackedFiles) {
-            if (!untrackedFiles.contains(fileName)) {
-                checkoutFileFromCommit(commitID, fileName);
+            checkoutFileFromCommit(commitID, fileName);
+        }
+        for (String fileName : trackedInCurrent) {
+            if (!trackedFiles.contains(fileName)) {
+                File file = join(CWD, fileName);
+                Utils.restrictedDelete(file);
             }
         }
+    }
+
+    private static String convertShortID(String commitID) {
+        if (commitID.length() == 40) {
+            return commitID;
+        }
+        for (File file : Objects.requireNonNull(COMMITS_DIR.listFiles())) {
+            for (File fileInFile : Objects.requireNonNull(file.listFiles())) {
+                if ((file.getName() + fileInFile.getName()).startsWith(commitID)) {
+                    return file.getName() + fileInFile.getName();
+                }
+            }
+        }
+        Utils.exitWithMessage("No commit with that id exists.");
+        return null;
     }
 
     public static void checkout(String[] args) {
         if (args.length == 2) {
             checkoutBranch(args[1]);
-        } else if (args.length == 3) {
-            String branch = readContentsAsString(HEAD);
-            String headCommitID = readContentsAsString(join(BRANCHES_DIR, branch));
-            checkoutFileFromCommit(headCommitID, args[2]);
             clearStagingArea();
+        } else if (args.length == 3) {
+            String headCommitID = getHeadCommit().getSha1();
+            checkoutFileFromCommit(headCommitID, args[2]);
         } else if (args.length == 4) {
-            checkoutFileFromCommit(args[1], args[3]);
+            checkoutFileFromCommit(Objects.requireNonNull(convertShortID(args[1])), args[3]);
         }
     }
 
@@ -331,7 +363,8 @@ public class Repository {
     }
 
     public static void reset(String commitID) {
-        File file = join(COMMITS_DIR, commitID);
+        File file = join(COMMITS_DIR, commitID.substring(0, 2));
+        file = join(file, commitID.substring(2));
         if (!file.exists()) {
             Utils.exitWithMessage("No commit with that id exists.");
         }

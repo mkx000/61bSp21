@@ -1,0 +1,23 @@
+I definitions.inc
+I init-add-commit.inc
+
+# 短的提交ID找不到，
+> branch v1
+<<<
+> branch v2
+<<<
+> checkout v1
+<<<
++ notwug.txt notwug.txt
+> add notwug.txt
+<<<
+> commit "v1 change wug.txt to notwug.txt"
+<<<
+> checkout v2
+<<<
+> rm wug.txt
+<<<
+> commit "v2 remove wug.txt"
+<<<
+
+

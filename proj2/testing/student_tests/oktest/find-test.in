@@ -5,7 +5,7 @@ ${SHA1}
 <<<*
 > find "noexistent commit"
 Found no commit with that message.
-<<<*
+<<<
 > init
 ${ARBLINE}
 <<<*

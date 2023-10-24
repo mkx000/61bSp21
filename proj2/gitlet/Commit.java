@@ -167,14 +167,14 @@ public class Commit implements Dumpable {
     }
 
     public String save() {
+        String sha1 = Utils.sha1((Object) Utils.serialize(this));
+        this.sha1 = sha1;
         File dir = Utils.join(Repository.COMMITS_DIR, sha1.substring(0, 2));
         if (!dir.exists()) {
             if (!dir.mkdir()) {
                 Utils.exitWithMessage("mkdir failed in Commit.save()");
             }
         }
-        String sha1 = Utils.sha1((Object) Utils.serialize(this));
-        this.sha1 = sha1;
         Utils.writeObject(Utils.join(dir, sha1.substring(2)), this);
         return sha1;
     }

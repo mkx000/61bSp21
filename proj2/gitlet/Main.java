@@ -64,24 +64,37 @@ public class Main {
                 if (args.length < 2 || args.length > 4) {
                     Utils.exitWithMessage("Incorrect operands.");
                 }
+                if (args.length == 3) {
+                    if (!args[1].equals("--")) {
+                        Utils.exitWithMessage("Incorrect operands.");
+                    }
+                } else if (args.length == 4) {
+                    if (!args[2].equals("--")) {
+                        Utils.exitWithMessage("Incorrect operands.");
+                    }
+                }
                 Repository.checkout(args);
                 break;
             case "branch":
                 validateRepoExists();
                 validateNumArgs(args, 2);
                 Repository.branch(args[1]);
+                break;
             case "rm-branch":
                 validateRepoExists();
                 validateNumArgs(args, 2);
                 Repository.rmBranch(args[1]);
+                break;
             case "reset":
                 validateRepoExists();
                 validateNumArgs(args, 2);
                 Repository.reset(args[1]);
+                break;
             case "merge":
                 validateRepoExists();
                 validateNumArgs(args, 2);
                 Repository.merge(args[1]);
+                break;
             default:
                 System.out.println("No command with that name exists.");
                 System.exit(0);
