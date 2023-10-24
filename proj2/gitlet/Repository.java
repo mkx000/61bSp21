@@ -390,13 +390,14 @@ public class Repository {
         }
     }
 
-    private static void conflict(String fileName, String headBlobID, String givenBlobID) {
+    private static String conflict(String fileName, String headBlobID, String givenBlobID) {
 
         String headContent = headBlobID == null ? "" : Blob.read(headBlobID).getContents();
         String givenContent = givenBlobID == null ? "" : Blob.read(givenBlobID).getContents();
         String content = "<<<<<<< HEAD\n" + headContent + "=======\n" + givenContent + ">>>>>>>\n";
         writeContents(join(CWD, fileName), content);
-        Repository.add(fileName);
+        Blob blob = new Blob(content);
+        return blob.commit();
     }
 
     public static void merge(String branchName) {
@@ -430,44 +431,89 @@ public class Repository {
         allFiles.addAll(headCommit.getTrackedFiles());
         allFiles.addAll(givenBranch.getTrackedFiles());
 
-        HashMap<String, String> checkoutFiles = new HashMap<>();
-        for (String fileInSplit : allFiles) {
-            String split = splitPoint.blobID(fileInSplit);
-            String head = headCommit.blobID(fileInSplit);
-            String given = givenBranch.blobID(fileInSplit);
+        HashSet<String> checkoutFiles = new HashSet<>();
+        HashSet<String> conflictFiles = new HashSet<>();
+        HashSet<String> fileToRemove = new HashSet<>();
+        for (String fileName : allFiles) {
+            String split = splitPoint.blobID(fileName);
+            String head = headCommit.blobID(fileName);
+            String given = givenBranch.blobID(fileName);
             if (split == null) {
-                if (head == null && given != null) {
-                    checkoutFiles.put(fileInSplit, given);
-                } else if (head != null && given == null) {
+                // not present at the split point
+                if (head == null) {
+                    // present in given branch but not in current branch
+                    checkoutFiles.add(fileName);
+                } else if (given == null) {
+                    // present in current branch but not in given branch
                     continue;
-                } else if (head != null) {
-                    if (!head.equals(given)) {
-                        conflict(fileInSplit, head, given);
-                    }
+                } else if (!head.equals(given)) {
+                    // present in both branches
+                    // different contents
+                    conflictFiles.add(fileName);
                 }
+
             } else {
+                // present in the split point
                 if (head == null && given == null) {
+                    // modified in the same way
                     continue;
                 } else if (head != null && given == null) {
-                    Repository.rm(fileInSplit);
-                } else if (head == null) {
-                    if (!split.equals(given)) {
-                        checkoutFiles.put(fileInSplit, given);
+                    // deleted in the given branch
+                    if (!split.equals(head)) {
+                        // unmodified in the current branch, and absent in the given branch
+                        conflictFiles.add(fileName);
+                    } else {
+                        //the contents of one are changed in the current and the other file is delete
+                        fileToRemove.add(fileName);
                     }
+                } else if (head == null) {
+                    // present in the given branch, absent in the current branch
+                    if (!split.equals(given)) {
+                        // the contents of one are changed and the other file is deleted
+                        conflictFiles.add(fileName);
+                    }
+                    // unmodified in the given branch, should remain absent
                 } else {
+                    // present both in current and given branch
                     if (split.equals(head) && !split.equals(given)) {
-                        checkoutFiles.put(fileInSplit, given);
+                        // modified in the given branch not modified in the current branch
+                        checkoutFiles.add(fileName);
                     } else if (!split.equals(head) && split.equals(given)) {
+                        // modified in the current branch not modified in the given branch should stay as they are
                         continue;
-                    } else if (!split.equals(head) && !split.equals(given)) {
-                        if (head.equals(given)) {
-                            checkoutFiles.put(fileInSplit, given);
-                        } else {
-                            conflict(fileInSplit, head, given);
+                    } else if (!split.equals(head)) {
+                        // different contents
+                        if (!head.equals(given)) {
+                            conflictFiles.add(fileName);
                         }
                     }
                 }
             }
         }
+        Commit mergeCommit = new Commit("Merged " + branchName + " into " + readContentsAsString(HEAD) + ".", new Date(), getHeadCommit(), givenBranch);
+        for (String fileName : fileToRemove) {
+            mergeCommit.remove(fileName);
+            Utils.restrictedDelete(join(CWD, fileName));
+        }
+        if (!conflictFiles.isEmpty()) {
+            System.out.println("Encountered a merge conflict.");
+        }
+        for (String fileName : conflictFiles) {
+            String headBlobID = headCommit.blobID(fileName);
+            String givenBlobID = givenBranch.blobID(fileName);
+            String sha1 = conflict(fileName, headBlobID, givenBlobID);
+            mergeCommit.add(fileName, sha1);
+        }
+        HashSet<String> untrackedFiles = getUntrackedFiles();
+        for (String fileName : checkoutFiles) {
+            if (untrackedFiles.contains(fileName)) {
+                Utils.exitWithMessage("There is an untracked file in the way; delete it,  or add and commit it first.");
+            }
+            checkoutFileFromCommit(givenBranch.getSha1(), fileName);
+            mergeCommit.add(fileName, givenBranch.blobID(fileName));
+        }
+        String sha1 = mergeCommit.save();
+        writeContents(join(BRANCHES_DIR, readContentsAsString(HEAD)), sha1);
+        clearStagingArea();
     }
 }

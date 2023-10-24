@@ -35,8 +35,8 @@ public class Commit implements Dumpable {
     private String parent2ID;
     private String sha1;
     // cant' read or write transient fields
-    private final transient Commit parent1Commit1;
-    private transient Commit parent1Commit2;
+    private final transient Commit parent1Commit;
+    private transient Commit parent2Commit;
 
     // 相对路径 -> blob sha1
     private final HashMap<String, String> tree;
@@ -53,14 +53,12 @@ public class Commit implements Dumpable {
         } else {
             this.tree = new HashMap<>();
         }
-        parent1Commit1 = parent;
+        parent1Commit = parent;
         if (parent != null) {
             this.parent1ID = parent.getSha1();
         } else {
             this.parent1ID = null;
         }
-        parent1Commit2 = null;
-        parent2ID = null;
     }
 
     public Commit(String msg, Date date, Commit parent1, Commit parent2) {
@@ -68,8 +66,8 @@ public class Commit implements Dumpable {
         this.date = date;
         this.tree = parent1.tree;
         this.tree.putAll(parent2.tree);
-        parent1Commit1 = parent1;
-        parent1Commit2 = parent2;
+        parent1Commit = parent1;
+        parent2Commit = parent2;
         this.parent1ID = parent1.getSha1();
         this.parent2ID = parent2.getSha1();
     }
@@ -138,7 +136,7 @@ public class Commit implements Dumpable {
         Formatter f = new Formatter();
         f.format("===\n");
         f.format("commit %s\n", sha1);
-        if (parent1Commit2 != null) {
+        if (parent2Commit != null) {
             f.format("Merge: %s %s\n", parent1ID.substring(0, 7), parent2ID.substring(0, 7));
         }
         f.format("Date: %s +0800\n", date.toString().substring(0, 20) + date.toString().substring(24));
